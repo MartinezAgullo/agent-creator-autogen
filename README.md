@@ -1,11 +1,10 @@
-```
 # AI Agent Generator
 
 Multi-agent system that creates and coordinates AI agents for defense and military strategic analysis using Microsoft AutoGen.
 
 ## What It Does
 
-- **Generates 20 AI agents** with unique military specializations (cyber, intelligence, logistics, etc.)
+- **Generates** {HOW_MANY_AGENTS} **AI agents** with unique military specializations (cyber, intelligence, logistics, etc.)
 - Agents autonomously develop **operational concepts and tactical solutions**
 - **Collaborative refinement**: Agents randomly consult each other to improve analyses
 - Outputs saved as markdown files (idea1.md, idea2.md, etc.)

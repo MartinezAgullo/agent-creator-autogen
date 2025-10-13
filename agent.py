@@ -5,8 +5,18 @@ from autogen_ext.models.openai import OpenAIChatCompletionClient
 import messages
 import random
 from dotenv import load_dotenv
+import logging
+
 
 load_dotenv(override=True)
+
+# Configuration
+LLM_MODEL = "gpt-4o-mini"
+
+# Logging setup
+#logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
 
 class Agent(RoutedAgent):
 
@@ -31,18 +41,23 @@ class Agent(RoutedAgent):
 
     def __init__(self, name) -> None:
         super().__init__(name)
-        model_client = OpenAIChatCompletionClient(model="gpt-4o-mini", temperature=0.4)
+        model_client = OpenAIChatCompletionClient(model=LLM_MODEL, temperature=0.4)
         self._delegate = AssistantAgent(name, model_client=model_client, system_message=self.system_message)
+        logger.info(f"Agent {name} initialized with model {LLM_MODEL}")
 
     @message_handler
     async def handle_message(self, message: messages.Message, ctx: MessageContext) -> messages.Message:
-        print(f"{self.id.type}: Received message")
+        logger.info(f"{self.id.type}: Received message")
         text_message = TextMessage(content=message.content, source="user")
         response = await self._delegate.on_messages([text_message], ctx.cancellation_token)
         idea = response.chat_message.content
+
         if random.random() < self.CHANCES_THAT_I_BOUNCE_IDEA_OFF_ANOTHER:
             recipient = messages.find_recipient()
+            logger.info(f"{self.id.type}: Bouncing idea to {recipient.type}")
             message = f"Here is my idea. It may not be your speciality, but please refine it and make it better. {idea}"
             response = await self.send_message(messages.Message(content=message), recipient)
             idea = response.content
+
+        logger.info(f"{self.id.type}: Completed processing")
         return messages.Message(content=idea)

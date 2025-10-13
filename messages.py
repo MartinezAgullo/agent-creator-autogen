@@ -2,9 +2,11 @@ from dataclasses import dataclass
 from autogen_core import AgentId
 import glob
 import os
-
+import logging
 
 import random
+
+logger = logging.getLogger(__name__)
 
 @dataclass
 class Message:

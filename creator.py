@@ -11,10 +11,12 @@ from dotenv import load_dotenv
 
 load_dotenv(override=True)
 
-logging.basicConfig(level=logging.WARNING)
-logger = logging.getLogger(TRACE_LOGGER_NAME)
-logger.addHandler(logging.StreamHandler())
-logger.setLevel(logging.DEBUG)
+# Configuration
+LLM_MODEL = "gpt-4o-mini"
+
+# Logging setup
+#logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 class Creator(RoutedAgent):
@@ -37,8 +39,10 @@ class Creator(RoutedAgent):
 
     def __init__(self, name) -> None:
         super().__init__(name)
-        model_client = OpenAIChatCompletionClient(model="gpt-4o-mini", temperature=1.0)
+        model_client = OpenAIChatCompletionClient(model=LLM_MODEL, temperature=1.0)
         self._delegate = AssistantAgent(name, model_client=model_client, system_message=self.system_message)
+        logger.info(f"Creator {name} initialized with model {LLM_MODEL}")
+
 
     def get_user_prompt(self):
         prompt = "Please generate a new Agent based strictly on this template. Stick to the class structure. \
@@ -54,13 +58,19 @@ class Creator(RoutedAgent):
     async def handle_my_message_type(self, message: messages.Message, ctx: MessageContext) -> messages.Message:
         filename = message.content
         agent_name = filename.split(".")[0]
+        logger.info(f"Creator: Generating agent code for {agent_name}")
+        
         text_message = TextMessage(content=self.get_user_prompt(), source="user")
         response = await self._delegate.on_messages([text_message], ctx.cancellation_token)
         with open(filename, "w", encoding="utf-8") as f:
             f.write(response.chat_message.content)
-        print(f"** Creator has created python code for agent {agent_name} - about to register with Runtime")
+        logger.info(f"Creator: Agent code written to {filename}")
+
+        logger.info(f"Creator has created python code for agent {agent_name} - about to register with Runtime")
         module = importlib.import_module(agent_name)
         await module.Agent.register(self.runtime, agent_name, lambda: module.Agent(agent_name))
-        logger.info(f"** Agent {agent_name} is live")
+        logger.info(f"Creator: Agent {agent_name} is live")
+        
         result = await self.send_message(messages.Message(content="Provide a strategic analysis or operational concept."), AgentId(agent_name, "default"))
+        logger.info(f"Creator: Received result from {agent_name}")
         return messages.Message(content=result.content)
