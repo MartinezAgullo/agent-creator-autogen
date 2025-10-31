@@ -1,18 +1,23 @@
-from autogen_core import MessageContext, RoutedAgent, message_handler
+from autogen_core import MessageContext, RoutedAgent, message_handler, AgentId
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.messages import TextMessage
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 import messages
-from autogen_core import TRACE_LOGGER_NAME
 import importlib
 import logging
-from autogen_core import AgentId
 from dotenv import load_dotenv
+from pathlib import Path
+import os
+import sys
 
 load_dotenv(override=True)
 
 # Configuration
 LLM_MODEL = "gpt-4o-mini"
+
+# Base writable dir inside container
+RUNTIME_DIR = Path(os.getenv("AGENT_RUNTIME_DIR", "/runtime"))
+RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
 
 # Logging setup
 #logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -43,13 +48,17 @@ class Creator(RoutedAgent):
         self._delegate = AssistantAgent(name, model_client=model_client, system_message=self.system_message)
         logger.info(f"Creator {name} initialized with model {LLM_MODEL}")
 
+        # Ensure /runtime is in sys.path so new agents are importable
+        if str(RUNTIME_DIR) not in sys.path:
+            sys.path.insert(0, str(RUNTIME_DIR))
+
 
     def get_user_prompt(self):
         prompt = "Please generate a new Agent based strictly on this template. Stick to the class structure. \
-            Respond only with the python code, no other text, and no markdown code blocks.\n\n\
+            Respond only with the Python code, no other text, and no markdown code blocks.\n\n\
             Be creative about taking the agent in a new direction, but don't change method signatures.\n\n\
             Here is the template:\n\n"
-        with open("agent.py", "r", encoding="utf-8") as f:
+        with open("/app/agent.py", "r", encoding="utf-8") as f:
             template = f.read()
         return prompt + template   
         
@@ -57,20 +66,29 @@ class Creator(RoutedAgent):
     @message_handler
     async def handle_my_message_type(self, message: messages.Message, ctx: MessageContext) -> messages.Message:
         filename = message.content
-        agent_name = filename.split(".")[0]
+        agent_name = Path(filename).stem
         logger.info(f"Creator: Generating agent code for {agent_name}")
         
         text_message = TextMessage(content=self.get_user_prompt(), source="user")
         response = await self._delegate.on_messages([text_message], ctx.cancellation_token)
-        with open(filename, "w", encoding="utf-8") as f:
-            f.write(response.chat_message.content)
-        logger.info(f"Creator: Agent code written to {filename}")
 
-        logger.info(f"Creator has created python code for agent {agent_name} - about to register with Runtime")
-        module = importlib.import_module(agent_name)
+        agent_path = RUNTIME_DIR / f"{agent_name}.py"
+        with open(agent_path, "w", encoding="utf-8") as f:
+            f.write(response.chat_message.content)
+        logger.info(f"Creator: Agent code written to {agent_path}")
+
+        # Dynamically import agent from /runtime
+        spec = importlib.util.spec_from_file_location(agent_name, agent_path)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[agent_name] = module
+        spec.loader.exec_module(module)
+
         await module.Agent.register(self.runtime, agent_name, lambda: module.Agent(agent_name))
         logger.info(f"Creator: Agent {agent_name} is live")
         
-        result = await self.send_message(messages.Message(content="Provide a strategic analysis or operational concept."), AgentId(agent_name, "default"))
+        result = await self.send_message(
+            messages.Message(content="Provide a strategic analysis or operational concept."),
+            AgentId(agent_name, "default")
+        )
         logger.info(f"Creator: Received result from {agent_name}")
         return messages.Message(content=result.content)

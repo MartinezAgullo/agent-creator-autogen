@@ -81,7 +81,7 @@ dmypy.json
 
 
 # Project specific
-assessment/assessment_*.md
+assessments/assessment_*.md
 agent1.py
 agent2.py
 agent3.py

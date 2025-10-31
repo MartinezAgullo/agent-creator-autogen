@@ -7,10 +7,12 @@ import messages
 import asyncio
 from pathlib import Path
 import logging
+import os
+
 
 # Configuration
 HOW_MANY_AGENTS = 10
-OUTPUT_DIR = "assessments"
+OUTPUT_DIR = Path(os.getenv("ASSESSMENT_DIR", "/assessments"))
 
 # Logging setup
 logging.basicConfig(
