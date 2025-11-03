@@ -9,6 +9,8 @@ from dotenv import load_dotenv
 from pathlib import Path
 import os
 import sys
+from validator import CodeValidator
+
 
 load_dotenv(override=True)
 
@@ -71,7 +73,50 @@ class Creator(RoutedAgent):
         
         text_message = TextMessage(content=self.get_user_prompt(), source="user")
         response = await self._delegate.on_messages([text_message], ctx.cancellation_token)
+        generated_code = response.chat_message.content
+        
+        # Clean common LLM formatting issues
+        cleaned_code = CodeValidator.clean_code(generated_code)
+        
+        # Validate the generated code
+        is_valid, issues = CodeValidator.validate(cleaned_code)
 
+        if not is_valid:
+            logger.error(f"Creator: Generated code for {agent_name} failed validation")
+            logger.error(f"Creator: Validation issues: {issues}")
+            
+            # Try one more time with explicit feedback
+            retry_prompt = f"""
+                The previous code had these validation issues:
+                {chr(10).join(f"- {issue}" for issue in issues)}
+
+                Please generate the code again, ensuring:
+                1. Pure Python code (no markdown)
+                2. Class named 'Agent' inheriting from RoutedAgent
+                3. Has __init__ and handle_message methods
+                4. No forbidden imports (subprocess, eval, socket, etc.)
+                5. Code length between 500-15000 characters
+
+                Template:
+                """
+            retry_prompt += self.get_user_prompt()
+            
+            logger.info(f"Creator: Retrying code generation for {agent_name}")
+            text_message = TextMessage(content=retry_prompt, source="user")
+            response = await self._delegate.on_messages([text_message], ctx.cancellation_token)
+            generated_code = response.chat_message.content
+            cleaned_code = CodeValidator.clean_code(generated_code)
+            
+            # Validate retry
+            is_valid, issues = CodeValidator.validate(cleaned_code)
+            if not is_valid:
+                logger.error(f"Creator: Retry failed for {agent_name}. Issues: {issues}")
+                error_msg = f"Failed to generate valid agent code after retry.\nIssues:\n" + "\n".join(f"- {i}" for i in issues)
+                return messages.Message(content=error_msg)
+            
+            logger.info(f"Creator: Retry successful for {agent_name}")
+
+        # Write validated code
         agent_path = RUNTIME_DIR / f"{agent_name}.py"
         with open(agent_path, "w", encoding="utf-8") as f:
             f.write(response.chat_message.content)

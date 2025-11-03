@@ -32,6 +32,8 @@ COPY --chown=sandbox:sandbox agent.py agent.py
 COPY --chown=sandbox:sandbox creator.py creator.py
 COPY --chown=sandbox:sandbox messages.py messages.py
 COPY --chown=sandbox:sandbox metrics.py metrics.py
+COPY --chown=sandbox:sandbox validator.py validator.py
+
 
 # Create necessary directories with proper permissions
 RUN mkdir -p /runtime /assessments && \
