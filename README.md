@@ -1,6 +1,6 @@
 # AI Agent Generator for Defense Analysis
 
-Multi-agent system that dynamically creates and coordinates AI agents for defense and military strategic analysis using Microsoft AutoGen. Agents autonomously develop operational concepts, tactical solutions, and collaborate to refine analyses.
+Multi-agent system that dynamically creates and coordinates AI agents for defense and military strategic analysis using [Microsoft AutoGen](https://microsoft.github.io/autogen/stable//index.html). Agents autonomously develop operational concepts, tactical solutions, and collaborate to refine analyses.
 
 ## Features
 
@@ -89,13 +89,6 @@ Modify agent behavior in `agent.py`:
 └── assessments/            # Output directory (created automatically)
 ```
 
-
-## Requirements
-
-- Docker Desktop 4.0+ with ARM64 support
-- 4GB+ RAM available for Docker
-- OpenAI API key with GPT-4 access
-- macOS ARM64 (Apple Silicon)
 
 ## License
 

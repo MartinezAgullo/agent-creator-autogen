@@ -37,6 +37,7 @@ class Agent(RoutedAgent):
 
     # Behavior tuning
     CHANCES_THAT_I_BOUNCE_IDEA_OFF_ANOTHER = 0.8 # More peer-review & refinement
+
     #CHANCES_THAT_I_BOUNCE_IDEA_OFF_ANOTHER = 0.2 # For operations that requeire fast decissionnaking 
 
 

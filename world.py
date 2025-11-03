@@ -13,6 +13,7 @@ import os
 # Configuration
 HOW_MANY_AGENTS = 10
 OUTPUT_DIR = Path(os.getenv("ASSESSMENT_DIR", "/assessments"))
+AGENT_TIMEOUT_SECONDS = 120  # 2 minutes per agent
 
 # Logging setup
 logging.basicConfig(
@@ -29,17 +30,32 @@ async def create_and_message(worker: GrpcWorkerAgentRuntime, creator_id: AgentId
 
     try:
         logger.info(f"Creating agent {i}")
-        result = await worker.send_message(messages.Message(content=f"agent{i}.py"), creator_id)
+        # Add timeout to prevent hung agents
+        result = await asyncio.wait_for(
+            worker.send_message(messages.Message(content=f"agent{i}.py"), creator_id),
+            timeout=AGENT_TIMEOUT_SECONDS
+        )
 
         # Create output directory if it doesn't exist
-        output_path = Path(OUTPUT_DIR)
-        output_path.mkdir(exist_ok=True)
+        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
 
         # Save assessment in the designated folder
-        output_file = output_path / f"assessment_{i}.md"
+        output_file = OUTPUT_DIR / f"assessment_{i}.md"
         with open(output_file, "w", encoding="utf-8") as f:
             f.write(result.content)
         logger.info(f"Assessment {i} saved to {output_file}")
+
+    except asyncio.TimeoutError:
+        logger.error(f"Agent {i} timed out after {AGENT_TIMEOUT_SECONDS} seconds")
+        
+        # Create timeout assessment
+        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        timeout_content = f"# Agent {i} exceeded the {AGENT_TIMEOUT_SECONDS} seconds execution limit."
+        output_file = OUTPUT_DIR / f"assessment_{i}_TIMEOUT.md"
+        with open(output_file, "w", encoding="utf-8") as f:
+            f.write(timeout_content)
+        logger.warning(f"Timeout assessment created: {output_file}")
 
     except Exception as e:
         logger.error(f"Failed to run worker {i} due to exception: {e}")
