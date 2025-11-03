@@ -86,6 +86,7 @@ Modify agent behavior in `agent.py`:
 ├── creator.py              # Dynamic agent generator
 ├── agent.py                # Agent template
 ├── messages.py             # Communication protocol
+├── metrics.py              # Execution tracking
 └── assessments/            # Output directory (created automatically)
 ```
 

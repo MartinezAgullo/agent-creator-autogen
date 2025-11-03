@@ -8,7 +8,8 @@ import asyncio
 from pathlib import Path
 import logging
 import os
-
+from datetime import datetime
+from metrics import MetricsCollector, AgentMetrics
 
 # Configuration
 HOW_MANY_AGENTS = 10
@@ -26,7 +27,12 @@ logging.getLogger('autogen_core').setLevel(logging.WARNING)
 logging.getLogger('autogen_core.events').setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
+# Global metrics collector
+metrics_collector = MetricsCollector()
+
 async def create_and_message(worker: GrpcWorkerAgentRuntime, creator_id: AgentId, i: int) -> None:
+    start_time = datetime.now()
+    agent_id = f"agent{i}"
 
     try:
         logger.info(f"Creating agent {i}")
@@ -46,6 +52,16 @@ async def create_and_message(worker: GrpcWorkerAgentRuntime, creator_id: AgentId
             f.write(result.content)
         logger.info(f"Assessment {i} saved to {output_file}")
 
+        # Record successful execution metrics
+        metrics_collector.record(AgentMetrics(
+            agent_id=agent_id,
+            start_time=start_time,
+            end_time=datetime.now(),
+            success=True,
+            code_length=len(result.content),
+            error_message=None
+        ))
+
     except asyncio.TimeoutError:
         logger.error(f"Agent {i} timed out after {AGENT_TIMEOUT_SECONDS} seconds")
         
@@ -57,8 +73,28 @@ async def create_and_message(worker: GrpcWorkerAgentRuntime, creator_id: AgentId
             f.write(timeout_content)
         logger.warning(f"Timeout assessment created: {output_file}")
 
+        # Record timeout metrics
+        metrics_collector.record(AgentMetrics(
+            agent_id=agent_id,
+            start_time=start_time,
+            end_time=datetime.now(),
+            success=False,
+            code_length=0,
+            error_message=f"Timeout after {AGENT_TIMEOUT_SECONDS}s"
+        ))
+
     except Exception as e:
         logger.error(f"Failed to run worker {i} due to exception: {e}")
+
+        # Record failure metrics
+        metrics_collector.record(AgentMetrics(
+            agent_id=agent_id,
+            start_time=start_time,
+            end_time=datetime.now(),
+            success=False,
+            code_length=0,
+            error_message=str(e)
+        ))
 
 async def main() -> None:
     logger.info("Starting multi-agent system")
@@ -83,8 +119,12 @@ async def main() -> None:
     except Exception as e:
         logger.error(f"Error during shutdown: {e}")
 
+    # Save and print metrics summary
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    metrics_collector.save_summary(OUTPUT_DIR / "execution_metrics.json")
+    metrics_collector.print_summary()
+    logger.info(f"Metrics saved to {OUTPUT_DIR / 'execution_metrics.json'}")
+
 
 if __name__ == "__main__":
     asyncio.run(main())
-
-
