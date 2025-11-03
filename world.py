@@ -1,6 +1,6 @@
 from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntimeHost
 from agent import Agent
-from creator import Creator
+from creator import Creator, ValidationFailureException
 from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntime
 from autogen_core import AgentId
 import messages
@@ -81,6 +81,26 @@ async def create_and_message(worker: GrpcWorkerAgentRuntime, creator_id: AgentId
             success=False,
             code_length=0,
             error_message=f"Timeout after {AGENT_TIMEOUT_SECONDS}s"
+        ))
+        
+    except ValidationFailureException as e:
+        logger.error(f"Agent {i} failed validation")
+        
+        # Create validation failure assessment
+        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        output_file = OUTPUT_DIR / f"assessment_{i}_VALIDATION_FAILED.md"
+        with open(output_file, "w", encoding="utf-8") as f:
+            f.write(str(e))
+        logger.warning(f"Validation failure assessment created: {output_file}")
+        
+        # Record validation failure metrics
+        metrics_collector.record(AgentMetrics(
+            agent_id=agent_id,
+            start_time=start_time,
+            end_time=datetime.now(),
+            success=False,
+            code_length=0,
+            error_message=f"Validation failed: {str(e)[:100]}"
         ))
 
     except Exception as e:

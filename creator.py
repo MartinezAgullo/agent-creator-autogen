@@ -25,6 +25,9 @@ RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
 #logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+class ValidationFailureException(Exception):
+    """Raised when code validation fails after retry."""
+    pass
 
 class Creator(RoutedAgent):
 
@@ -112,28 +115,35 @@ class Creator(RoutedAgent):
             if not is_valid:
                 logger.error(f"Creator: Retry failed for {agent_name}. Issues: {issues}")
                 error_msg = f"Failed to generate valid agent code after retry.\nIssues:\n" + "\n".join(f"- {i}" for i in issues)
-                return messages.Message(content=error_msg)
+                raise ValidationFailureException(error_msg)
             
             logger.info(f"Creator: Retry successful for {agent_name}")
 
         # Write validated code
         agent_path = RUNTIME_DIR / f"{agent_name}.py"
         with open(agent_path, "w", encoding="utf-8") as f:
-            f.write(response.chat_message.content)
-        logger.info(f"Creator: Agent code written to {agent_path}")
+            f.write(cleaned_code)
+        logger.info(f"Creator: Agent code written to {agent_path} ({len(cleaned_code)} chars)")
+
 
         # Dynamically import agent from /runtime
-        spec = importlib.util.spec_from_file_location(agent_name, agent_path)
-        module = importlib.util.module_from_spec(spec)
-        sys.modules[agent_name] = module
-        spec.loader.exec_module(module)
+        try:
+            spec = importlib.util.spec_from_file_location(agent_name, agent_path)
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[agent_name] = module
+            spec.loader.exec_module(module)
 
-        await module.Agent.register(self.runtime, agent_name, lambda: module.Agent(agent_name))
-        logger.info(f"Creator: Agent {agent_name} is live")
-        
-        result = await self.send_message(
-            messages.Message(content="Provide a strategic analysis or operational concept."),
-            AgentId(agent_name, "default")
-        )
-        logger.info(f"Creator: Received result from {agent_name}")
-        return messages.Message(content=result.content)
+            await module.Agent.register(self.runtime, agent_name, lambda: module.Agent(agent_name))
+            logger.info(f"Creator: Agent {agent_name} is live")
+            
+            result = await self.send_message(
+                messages.Message(content="Provide a strategic analysis or operational concept."),
+                AgentId(agent_name, "default")
+            )
+            logger.info(f"Creator: Received result from {agent_name}")
+            return messages.Message(content=result.content)
+
+        except Exception as e:
+            logger.error(f"Creator: Failed to execute {agent_name}: {e}")
+            error_msg = f"# Execution Failure\n\nAgent code was valid but failed to execute.\n\n## Error:\n{str(e)}"
+            raise RuntimeError(error_msg)

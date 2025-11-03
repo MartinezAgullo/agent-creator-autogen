@@ -1,0 +1,104 @@
+{
+  "execution_time": "2025-11-03T10:11:32.129934",
+  "total_agents": 10,
+  "successful": 10,
+  "failed": 0,
+  "success_rate": 100.0,
+  "total_duration_seconds": 498.328176,
+  "avg_duration_seconds": 49.8328176,
+  "min_duration_seconds": 28.503761,
+  "max_duration_seconds": 82.523177,
+  "total_code_generated_chars": 48135,
+  "agents": [
+    {
+      "agent_id": "agent7",
+      "start_time": "2025-11-03T10:10:09.597826",
+      "end_time": "2025-11-03T10:10:38.101587",
+      "duration_seconds": 28.503761,
+      "success": true,
+      "code_length": 3249,
+      "error_message": null
+    },
+    {
+      "agent_id": "agent3",
+      "start_time": "2025-11-03T10:10:09.597598",
+      "end_time": "2025-11-03T10:10:42.349820",
+      "duration_seconds": 32.752222,
+      "success": true,
+      "code_length": 4449,
+      "error_message": null
+    },
+    {
+      "agent_id": "agent5",
+      "start_time": "2025-11-03T10:10:09.597671",
+      "end_time": "2025-11-03T10:10:45.830424",
+      "duration_seconds": 36.232753,
+      "success": true,
+      "code_length": 4866,
+      "error_message": null
+    },
+    {
+      "agent_id": "agent8",
+      "start_time": "2025-11-03T10:10:09.597888",
+      "end_time": "2025-11-03T10:10:50.034801",
+      "duration_seconds": 40.436913,
+      "success": true,
+      "code_length": 4268,
+      "error_message": null
+    },
+    {
+      "agent_id": "agent4",
+      "start_time": "2025-11-03T10:10:09.597633",
+      "end_time": "2025-11-03T10:10:51.712224",
+      "duration_seconds": 42.114591,
+      "success": true,
+      "code_length": 4680,
+      "error_message": null
+    },
+    {
+      "agent_id": "agent9",
+      "start_time": "2025-11-03T10:10:09.597927",
+      "end_time": "2025-11-03T10:10:56.927717",
+      "duration_seconds": 47.32979,
+      "success": true,
+      "code_length": 4905,
+      "error_message": null
+    },
+    {
+      "agent_id": "agent2",
+      "start_time": "2025-11-03T10:10:09.597548",
+      "end_time": "2025-11-03T10:11:03.374947",
+      "duration_seconds": 53.777399,
+      "success": true,
+      "code_length": 5024,
+      "error_message": null
+    },
+    {
+      "agent_id": "agent1",
+      "start_time": "2025-11-03T10:10:09.597492",
+      "end_time": "2025-11-03T10:11:09.152780",
+      "duration_seconds": 59.555288,
+      "success": true,
+      "code_length": 5162,
+      "error_message": null
+    },
+    {
+      "agent_id": "agent6",
+      "start_time": "2025-11-03T10:10:09.597705",
+      "end_time": "2025-11-03T10:11:24.699987",
+      "duration_seconds": 75.102282,
+      "success": true,
+      "code_length": 5860,
+      "error_message": null
+    },
+    {
+      "agent_id": "agent10",
+      "start_time": "2025-11-03T10:10:09.597963",
+      "end_time": "2025-11-03T10:11:32.121140",
+      "duration_seconds": 82.523177,
+      "success": true,
+      "code_length": 5672,
+      "error_message": null
+    }
+  ]
+}
